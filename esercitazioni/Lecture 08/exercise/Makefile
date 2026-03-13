@@ -1,6 +1,11 @@
 CC = gcc
-CFLAGS = -O3 -Wall -pedantic -std=c17 -fno-if-conversion -fno-if-conversion2 -fno-tree-loop-if-convert
-HEADERS = ${wildcards *.h}
+CFLAGS = -O3 -Wall -pedantic -std=c17
+HEADERS = $(wildcard *.h)
+
+# Clang (default su macOS) non supporta questi flag GCC.
+ifeq ($(shell $(CC) --version 2>/dev/null | head -n1 | grep -ci clang),0)
+CFLAGS += -fno-if-conversion -fno-if-conversion2 -fno-tree-loop-if-convert
+endif
 
 all: main
 
