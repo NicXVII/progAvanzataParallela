@@ -1,2 +1,3 @@
 # progAvanzataParallela
- repo per il corso di Programmazione Avanzata e Parallela del prof Manzoni, Units
+Repo del corso Programmazzione Avanzata Parallela del prof Manzoni, units.
+Tecnologie: jupiter notebook, vscode, c,python.
