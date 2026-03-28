@@ -93,7 +93,7 @@ int main(int argc, char * argv[])
   test_tree(10);
   benchmark_tree(1000000, 1000);
 
-  // test_ctree(10);
-  //benchmark_ctree(1000000, 1000);
+   test_ctree(10);
+  benchmark_ctree(1000000, 1000);
   return 0;
 }
