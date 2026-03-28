@@ -5,30 +5,51 @@
 
 unrolled_linked_list ulst_make(void)
 {
-    unrolled_linked_list unode = (unrolled_linked_list) malloc(sizeof(struct _unrolled_linked_list));
-    unode->head = NULL;
-    initizalize_keys(&unode->head);
-    return unode;
-  /* TODO */
-}
-
-initizalize_keys(unode *node) {
-  unode nodo = &node;
-   for (int i = 0; i < UNROLLED_SIZE; i++) {
-    nodo->keys[i] = 0;
-    nodo->valid[i] = false;
+  unrolled_linked_list node = malloc(sizeof(struct _unrolled_linked_list));
+  if (node == NULL) {
+      return NULL;
   }
-  return nodo;
+  node->head = NULL;
+  return node;
 }
 
 void ulst_delete(unrolled_linked_list lst)
 {
-  /* TODO */
+if (lst == NULL){\
+    return;
+  }
+
+  unode current = lst->head;
+  while (current != NULL) {
+    unode next = current->next;
+    free(current);
+    current = next;
+  }
+  free(lst);
 }
 
 void ulst_add(unrolled_linked_list lst, int key)
 {
-  /* TODO */
+    if (lst == NULL) {
+        return;
+    }
+
+    unode h = lst->head;
+    if (h != NULL) {
+        for (int i = 0; i < UNROLLED_SIZE; i++) {
+            if (!h->valid[i]) {
+                h->keys[i] = key;
+                h->valid[i] = true;
+                return;
+            }
+        }
+    }
+    unode new_node = malloc(sizeof(struct _unrolled_node));
+    new_node-> valid[0] = true;
+    new_node->keys[0] = key;
+    
+
+
 }
 
 bool ulst_search(unrolled_linked_list lst, int key)
