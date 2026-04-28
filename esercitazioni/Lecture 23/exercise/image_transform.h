@@ -1,7 +1,7 @@
 #ifndef IMAGE_TRANSFORM_H
 #define IMAGE_TRANSFORM_H
 
-#define RADIUS_BLUR 50
+#define RADIUS_BLUR 25
 #define RADIUS_BORDER_HIGHLIGHT 250
 
 int blur_image(netpbm_ptr src, char *path, netpbm_ptr dst);

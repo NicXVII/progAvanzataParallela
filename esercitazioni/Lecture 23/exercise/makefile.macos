@@ -1,0 +1,29 @@
+CC = clang
+
+# OpenMP on macOS requires libomp from Homebrew.
+LIBOMP_PREFIX ?= $(shell brew --prefix libomp 2>/dev/null)
+ifeq ($(LIBOMP_PREFIX),)
+$(error libomp non trovato. Installa con: brew install libomp)
+endif
+
+CFLAGS = -O3 -Wall -std=c17 -pedantic -D_POSIX_C_SOURCE=200809L -Xpreprocessor -fopenmp -I$(LIBOMP_PREFIX)/include
+LDFLAGS = -L$(LIBOMP_PREFIX)/lib -lomp
+
+all: main
+
+main: main.o netpbm.o image_transform.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+main.o: netpbm.h image_transform.h
+netpbm.o: netpbm.h
+image_transform.o: image_transform.h netpbm.h
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+
+.PHONY: all clean
+
+clean:
+	rm -f *.o
+	rm -f main
+	rm -f kitty-transformed-*.pgm

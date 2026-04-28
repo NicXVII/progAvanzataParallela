@@ -17,21 +17,20 @@ int blur_image(netpbm_ptr src, char *path, netpbm_ptr dst) {
 
     int width = src->width;
     int height = src->height;
-    int sum = 0;
 
     int err = create_output_image(path, src, dst, r);
     if (err != 0) return err;
-
+    #pragma omp parallel for collapse(2)
     for(int x = r; x < width-r; x++) {
         for(int y = r; y < height-r; y++) {
-            sum = 0;
+            unsigned long long sum = 0;
             for(int i = -r; i <= r; i++) {
                 for(int j = -r; j <= r; j++) {
-                    sum += src->data[(y+j)*width + (x+i) + src->offset];
+                    sum += (unsigned char)(src->data[(y+j)*width + (x+i) + src->offset]);
                 }
             }
             
-            dst->data[(y - r) * (width - 2*r) + (x - r) + dst->offset] = (unsigned char)(sum / ((2*r+1)*(2*r+1)));
+            dst->data[(y - r) * (dst->width) + (x - r) + dst->offset] = (unsigned char)(sum / ((2*r+1)*(2*r+1)));
             
         }
     }

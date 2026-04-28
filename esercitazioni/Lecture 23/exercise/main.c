@@ -104,13 +104,13 @@ int main(void) {
     }
 
     // Benchmark:
-    // for (int i = 1; i <= nproc; i++) {
-    //     err = benchmark_images(&image, i, 15);
-    //     if (err != 0) {
-    //         close_image(&image);
-    //         return 1;
-    //     }
-    // }
+    for (int i = 1; i <= nproc; i++) {
+        err = benchmark_images(&image, i, 5);
+        if (err != 0) {
+            close_image(&image);
+            return 1;
+        }
+    }
 
     close_image(&image);
     return 0;
