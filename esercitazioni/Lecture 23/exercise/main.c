@@ -105,7 +105,11 @@ int main(void) {
 
     // Benchmark:
     for (int i = 1; i <= nproc; i++) {
+<<<<<<< Updated upstream
         err = benchmark_images(&image, i, 5);
+=======
+        err = benchmark_images(&image, i, 15);
+>>>>>>> Stashed changes
         if (err != 0) {
             close_image(&image);
             return 1;
