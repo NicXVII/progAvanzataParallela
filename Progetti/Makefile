@@ -1,9 +1,24 @@
 CC     = gcc
-CFLAGS = -O2 -march=native -fopenmp -Wall -Wextra
 OBJS   = tensor.o stack.o ops.o io.o lexer.o main.o
 
+# Rileva il sistema operativo
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+    # macOS - M1: OpenMP via Homebrew libomp
+    BREW_PREFIX := $(shell brew --prefix libomp)
+    CFLAGS  = -O2 -march=native -Wall -Wextra \
+              -Xpreprocessor -fopenmp \
+              -I$(BREW_PREFIX)/include
+    LDFLAGS = -L$(BREW_PREFIX)/lib -lomp
+else
+    # Linux
+    CFLAGS  = -O2 -march=native -fopenmp -Wall -Wextra
+    LDFLAGS =
+endif
+
 tensorforth: $(OBJS)
-	$(CC) $(CFLAGS) -o tensorforth $(OBJS)
+	$(CC) $(CFLAGS) -o tensorforth $(OBJS) $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
