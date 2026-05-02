@@ -11,6 +11,8 @@ bool stack_is_empty(tf_stack_t *stack) {
     return stack->top == -1;
 }
 
+
+//push
 void stack_push_tensor(tf_stack_t *stack, tensor_t *tensor) {
     if (stack->top >= MAX_STACK_SIZE - 1) {
         fprintf(stderr, "Errore: stack overflow\n");
@@ -21,7 +23,7 @@ void stack_push_tensor(tf_stack_t *stack, tensor_t *tensor) {
         exit(1);
     }
     stack->top++;
-    stack->items[stack->top].type = tf_stack_tENSOR;
+    stack->items[stack->top].type = STACK_TENSOR;
     stack->items[stack->top].value.tensor = tensor;
     tensor_incref(tensor);  
 }
@@ -44,4 +46,48 @@ void stack_push_string(tf_stack_t *stack,const char *string)
         exit(1);
     }
 }
+
+
+
+// pop
+tensor_t *stack_pop_tensor(tf_stack_t *stack) {
+    if (stack_is_empty(stack)) {
+        fprintf(stderr, "Errore: stack vuoto\n");
+        exit(1);
+    }
+    if (stack->items[stack->top].type != STACK_TENSOR) {
+        fprintf(stderr, "Errore: tipo non tensor\n");
+        exit(1);
+    }
+    tensor_t *tensor = stack->items[stack->top].value.tensor;
+    stack->top--;
+    return tensor;
+}
+
+char *stack_pop_string(tf_stack_t *stack) {
+    if (stack_is_empty(stack)) {
+        fprintf(stderr, "Errore: stack vuoto\n");
+        exit(1);
+    }
+    if (stack->items[stack->top].type != STACK_STRING) {
+        fprintf(stderr, "Errore: tipo non string\n");
+        exit(1);
+    }
+    char *string = stack->items[stack->top].value.string;
+    stack->top--;
+    return string;
+}
+
+
+//peek
+
+stack_item_t *stack_peek(tf_stack_t *stack){
+    if (stack_is_empty(stack)) {
+        fprintf(stderr, "Errore: stack vuoto\n");
+        exit(1);
+    }
+    stack_item_t *item = &stack->items[stack->top];
+
+    return item;
+} 
 

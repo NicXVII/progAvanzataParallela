@@ -32,3 +32,10 @@ main.o:   main.c stack.h ops.h io.h lexer.h
 
 clean:
 	rm -f $(OBJS) tensorforth
+
+
+test: tensor.o stack.o test_main.o
+	gcc -O2 -Wall -o test_stack tensor.o stack.o test_main.o
+
+test_main.o: test_main.c
+	gcc -O2 -Wall -c test_main.c -o test_main.o
