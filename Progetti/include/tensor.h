@@ -1,3 +1,5 @@
+//NICOLAS DIMINICH SM3201661
+
 #ifndef TENSOR_H
 #define TENSOR_H
 #define MAX_DIM 2
@@ -22,9 +24,5 @@ void      tensor_incref(tensor_t *t);                   // void
 void      tensor_decref(tensor_t *t);                   // void, fa free se refcount=0
 int       tensor_numel(const tensor_t *t);              // ritorna int
 void      tensor_print(const tensor_t *t);              // void
-
-
-
-
 
 #endif

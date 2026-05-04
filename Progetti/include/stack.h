@@ -1,3 +1,5 @@
+//NICOLAS DIMINICH SM3201661
+
 #ifndef STACK_H
 #define STACK_H
 
