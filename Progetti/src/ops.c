@@ -25,53 +25,53 @@ void execute_op(const char *op, tf_stack_t *stack) {
     }
 
     switch (op[0]) {
-        case '+': op_add(stack); break;
-        case '-': op_sub(stack); break;
-        case '*': op_mul(stack); break;
-        case '<':
-            if (op[1] == '\0') {
-                op_lt(stack);
-            } else if (op[1] == 'r' && op[2] == '\0') {
-                op_read_pgm(stack);
-            } else {
-                fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op);
-                exit(1);
-            }
-            break;
-        case '>':
-            if (op[1] == '\0') {
-                op_gt(stack);
-            } else if (op[1] == 'w' && op[2] == '\0') {
-                op_write_pgm(stack);
-            } else {
-                fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op);
-                exit(1);
-            }
-            break;
-        case '=': op_eq(stack); break;
-        case '&': op_and(stack); break;
-        case '|': op_or(stack); break;
-        case '!': op_not(stack); break;
-        case '?': op_select(stack); break;
-        case '@': op_matmul(stack); break;
-        case '.': op_dot(stack); break;
-        case 'c': op_conv(stack); break;
-        case 'R': op_relu(stack); break;
-        case 'm': op_min(stack); break;
-        case 'M': op_max(stack); break;
-        case 'S': op_sum(stack); break;
-        case 'f': op_fill(stack); break;
-        case 'r': op_reshape(stack); break;
-        case 'v': op_ravel(stack); break;
-        case 'q': op_shape(stack); break;
-        case '~': op_rand(stack); break;
-        case 'd': op_dup(stack); break;
-        case 's': op_swap(stack); break;
-        case 'o': op_over(stack); break;
-        case 'D': op_drop(stack); break;
-        case 'p': op_print(stack); break;
-        case '[': if (op[1] == '\0') op_read_bin(stack); else { fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op); exit(1); } break;
-        case ']': if (op[1] == '\0') op_write_bin(stack); else { fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op); exit(1); } break;
+        // case '+': op_add(stack); break;
+        // case '-': op_sub(stack); break;
+        // case '*': op_mul(stack); break;
+        // case '<':
+        //     if (op[1] == '\0') {
+        //         op_lt(stack);
+        //     } else if (op[1] == 'r' && op[2] == '\0') {
+        //         op_read_pgm(stack);
+        //     } else {
+        //         fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op);
+        //         exit(1);
+        //     }
+        //     break;
+        // case '>':
+        //     if (op[1] == '\0') {
+        //         op_gt(stack);
+        //     } else if (op[1] == 'w' && op[2] == '\0') {
+        //         op_write_pgm(stack);
+        //     } else {
+        //         fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op);
+        //         exit(1);
+        //     }
+        //     break;
+        // case '=': op_eq(stack); break;
+        // case '&': op_and(stack); break;
+        // case '|': op_or(stack); break;
+        // case '!': op_not(stack); break;
+        // case '?': op_select(stack); break;
+        // case '@': op_matmul(stack); break;
+        // case '.': op_dot(stack); break;
+        // case 'c': op_conv(stack); break;
+        // case 'R': op_relu(stack); break;
+        // case 'm': op_min(stack); break;
+        // case 'M': op_max(stack); break;
+        // case 'S': op_sum(stack); break;
+        // case 'f': op_fill(stack); break;
+        // case 'r': op_reshape(stack); break;
+        // case 'v': op_ravel(stack); break;
+        // case 'q': op_shape(stack); break;
+        // case '~': op_rand(stack); break;
+        // case 'd': op_dup(stack); break;
+        // case 's': op_swap(stack); break;
+        // case 'o': op_over(stack); break;
+        // case 'D': op_drop(stack); break;
+        // case 'p': op_print(stack); break;
+        // case '[': if (op[1] == '\0') op_read_bin(stack); else { fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op); exit(1); } break;
+        // case ']': if (op[1] == '\0') op_write_bin(stack); else { fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op); exit(1); } break;
         default:
             fprintf(stderr, "Errore: operatore sconosciuto '%s'\n", op);
             exit(1);
@@ -163,13 +163,98 @@ int * op_shape(tf_stack_t *stack) {
 
 
 //Operazioni di generazione di numeri casuali
-tensor_t * op_rand(tf_stack_t *stack) {
+void op_rand(tf_stack_t *stack) {
     // Implementazione dell'operazione di generazione di numeri casuali
     //torna un tensore con valori casuali tra 0,1
 }
 
 
 //Operazioni elemento per elemento
+
+
 void op_relu(tf_stack_t *stack) {
     // Implementazione dell'operazione di ReLU
 }
+
+void op_min(tf_stack_t *stack) {
+    // Implementazione dell'operazione di minimo elemento per elemento     ritorna elemento perelemento il minimo tra a e b
+
+}
+
+void op_max(tf_stack_t *stack) {
+    // Implementazione dell'operazione di massimo elemento per elemento     ritorna elemento perelemento il massimo tra a e b
+
+}
+
+//Per m e M i tensori devono essere delle stessa dimensione.
+
+
+//Operazioni di riduzione
+void op_sum(tf_stack_t *stack) {
+    // Implementazione dell'operazione di somma di tutti gli elementi del tensore
+    //ritorna un tensore 0D con la somma di tutti gli elementi di a
+}
+
+//Operazioni di filling di tensori
+void op_fill(tf_stack_t *stack) {
+    // Implementazione dell'operazione di filling di un tensore con un valore specifico
+    //riempie un tensore con un valore specifico
+}
+
+
+
+//Operazioni di utilità
+void op_print(tf_stack_t *stack) {
+    //stampa il contenuto del tensore
+    if(stack->top < 0) {
+        fprintf(stderr, "Errore: stack vuoto\n");
+        exit(1);
+    }
+    tensor_t *t = stack->items[stack->top].value.tensor;
+    printf("Tensor (ndim=%d, shape=[", t->ndim);
+    for (int i = 0; i < t->ndim; i++) {
+        printf("%d", t->shape[i]);
+        if (i < t->ndim - 1) printf(", ");
+    }
+    printf("])\n");
+}
+
+
+//Operazioni di manipolazione dello stack
+
+void op_dup(tf_stack_t *stack) {
+    // Duplica l'elemento in cima allo stack
+}
+void op_swap(tf_stack_t *stack) {
+    // Scambia i due elementi in cima allo stack
+}
+
+void op_over(tf_stack_t *stack) {
+    // Copia il secondo elemento dallo stack e lo mette in cima
+}
+
+void op_drop(tf_stack_t *stack) {
+    // Rimuove l'elemento in cima allo stack
+}
+
+
+
+//I/O operations
+void op_read_pgm(tf_stack_t *stack) {
+    // Implementazione dell'operazione di lettura di un'immagine PGM
+}
+
+void op_write_pgm(tf_stack_t *stack) {
+    // Implementazione dell'operazione di scrittura di un'immagine PGM
+}
+
+void op_read_bin(tf_stack_t *stack) {
+    // Implementazione dell'operazione di lettura di un file binario
+}
+
+void op_save_bin(tf_stack_t *stack) {
+    // salva tensore in file name
+}
+
+
+
