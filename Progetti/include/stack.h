@@ -6,7 +6,7 @@
 #include "tensor.h"
 #include <stdbool.h>
 
-#define MAX_STACK_SIZE 100
+#define MAX_STACK_SIZE 2048
 
 typedef enum {
     STACK_TENSOR,
