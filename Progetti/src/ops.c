@@ -96,33 +96,79 @@ void op_add(tf_stack_t *stack) {
     tensor_t *b = item_b->value.tensor;
     // Verifica che a e b abbiano la stessa forma
     if ( a->ndim != b->ndim) {
-        fprintf(stderr, "Errore: i tensori devono avere lo stesso numero di elementi\n");
+        fprintf(stderr, "Errore: i tensori devono avere lo stesso numero di dimensioni\n");
         exit(1);
+
     }
+    for (int i = 0; i < a->ndim; i++) {
+        if (a->shape[i] != b->shape[i]) {
+            fprintf(stderr, "Errore: i tensori devono avere la stessa forma\n");
+            exit(1);
+        }
+    }
+
     tensor_t *result = tensor_alloc(a->shape, a->ndim);
     for (int i = 0; i < tensor_numel(a); i++) {
         result->data[i] = a->data[i] + b->data[i];
     }
-    // Rimuovi i due tensori originali dallo stack
     
-
-
-
-    stack_pop_tensor(a);
-    stack_pop_tensor(b);
+    stack_pop_tensor(stack);
+    stack_pop_tensor(stack);
+    tensor_decref(a);
+    tensor_decref(b);
+    
     // Metti il risultato in cima allo stack
     stack_push_tensor(stack, result);
-
-
+    tensor_decref(result); // Decref perché stack_push_tensor fa incref
 
 }
 
 void op_sub(tf_stack_t *stack) {
     // Implementazione dell'operazione di sottrazione
+    if(stack->top < 1) {
+        fprintf(stderr, "Errore: stack sotto dimensionato per addizione\n");
+        exit(1);
+    }
+    stack_item_t *item_a = &stack->items[stack->top];
+    stack_item_t *item_b = &stack->items[stack->top - 1];
+    if (item_a->type != STACK_TENSOR || item_b->type != STACK_TENSOR) {
+        fprintf(stderr, "Errore: addizione richiede due tensori\n");
+        exit(1);
+    }
+    tensor_t *a = item_a->value.tensor;
+    tensor_t *b = item_b->value.tensor;
+    // Verifica che a e b abbiano la stessa forma
+    if ( a->ndim != b->ndim) {
+        fprintf(stderr, "Errore: i tensori devono avere lo stesso numero di dimensioni\n");
+        exit(1);
+
+    }
+    for (int i = 0; i < a->ndim; i++) {
+        if (a->shape[i] != b->shape[i]) {
+            fprintf(stderr, "Errore: i tensori devono avere la stessa forma\n");
+            exit(1);
+        }
+    }
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    for (int i = 0; i < tensor_numel(a); i++) {
+        result->data[i] = a->data[i] - b->data[i];
+    }
+    
+    stack_pop_tensor(stack);
+    stack_pop_tensor(stack);
+    tensor_decref(a);
+    tensor_decref(b);
+    
+    // Metti il risultato in cima allo stack
+    stack_push_tensor(stack, result);
+    tensor_decref(result); // Decref perché stack_push_tensor fa incref
+
 }
 
 void op_mul(tf_stack_t *stack) {
     // Implementazione dell'operazione di moltiplicazione
+     
 }
 
 
