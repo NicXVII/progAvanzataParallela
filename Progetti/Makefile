@@ -1,7 +1,8 @@
 CC     = gcc
 SRCDIR = src
 INCDIR = include
-OBJS   = $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops.o $(SRCDIR)/lexer.o $(SRCDIR)/main.o
+OBJS   = $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o \
+         $(SRCDIR)/ops.o $(SRCDIR)/lexer.o $(SRCDIR)/main.o
 
 # Rileva il sistema operativo
 UNAME := $(shell uname)
@@ -25,18 +26,23 @@ tensorforth: $(OBJS)
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(SRCDIR)/tensor.o: $(SRCDIR)/tensor.c $(INCDIR)/tensor.h
-$(SRCDIR)/stack.o:  $(SRCDIR)/stack.c $(INCDIR)/stack.h $(INCDIR)/tensor.h
-$(SRCDIR)/ops.o:    $(SRCDIR)/ops.c $(INCDIR)/ops.h $(INCDIR)/tensor.h $(INCDIR)/stack.h
-$(SRCDIR)/lexer.o:  $(SRCDIR)/lexer.c $(INCDIR)/lexer.h
-$(SRCDIR)/main.o:   $(SRCDIR)/main.c $(INCDIR)/stack.h $(INCDIR)/ops.h $(INCDIR)/lexer.h
+$(SRCDIR)/tensor.o:    $(SRCDIR)/tensor.c    $(INCDIR)/tensor.h
+$(SRCDIR)/stack.o:     $(SRCDIR)/stack.c     $(INCDIR)/stack.h    $(INCDIR)/tensor.h
+$(SRCDIR)/ops_utils.o: $(SRCDIR)/ops_utils.c $(INCDIR)/ops_utils.h \
+                        $(INCDIR)/tensor.h   $(INCDIR)/stack.h
+$(SRCDIR)/ops.o:       $(SRCDIR)/ops.c       $(INCDIR)/ops.h      \
+                        $(INCDIR)/tensor.h   $(INCDIR)/stack.h    \
+                        $(INCDIR)/ops_utils.h
+$(SRCDIR)/lexer.o:     $(SRCDIR)/lexer.c     $(INCDIR)/lexer.h
+$(SRCDIR)/main.o:      $(SRCDIR)/main.c      $(INCDIR)/stack.h    \
+                        $(INCDIR)/ops.h      $(INCDIR)/lexer.h
 
 clean:
 	rm -f $(OBJS) tensorforth test_stack test_main.o
 
-
 test: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
-	gcc -O2 -Wall -I$(INCDIR) -o test_stack $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
+	gcc -O2 -Wall -I$(INCDIR) -o test_stack \
+	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
 
 test_main.o: test_main.c
 	gcc -O2 -Wall -I$(INCDIR) -c test_main.c -o test_main.o
