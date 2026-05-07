@@ -38,7 +38,7 @@ $(SRCDIR)/main.o:      $(SRCDIR)/main.c      $(INCDIR)/stack.h    \
                         $(INCDIR)/ops.h      $(INCDIR)/lexer.h
 
 clean:
-	rm -f $(OBJS) tensorforth test_stack test_main.o
+	rm -f $(OBJS) tensorforth test_stack test_main.o test_ops_and_matmul test_ops_and_matmul.o
 
 test: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
 	gcc -O2 -Wall -I$(INCDIR) -o test_stack \
@@ -46,3 +46,10 @@ test: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
 
 test_main.o: test_main.c
 	gcc -O2 -Wall -I$(INCDIR) -c test_main.c -o test_main.o
+
+test_ops_and_matmul: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_ops_and_matmul.o
+	$(CC) $(CFLAGS) -o test_ops_and_matmul \
+	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_ops_and_matmul.o $(LDFLAGS)
+
+$(SRCDIR)/test_ops_and_matmul.o: $(SRCDIR)/test_ops_and_matmul.c $(INCDIR)/tensor.h $(INCDIR)/stack.h $(INCDIR)/ops.h
+	$(CC) $(CFLAGS) -c $(SRCDIR)/test_ops_and_matmul.c -o $(SRCDIR)/test_ops_and_matmul.o

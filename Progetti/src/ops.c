@@ -196,33 +196,142 @@ void op_and(tf_stack_t *stack) {
     tensor_t *result = tensor_alloc(a->shape, a->ndim);
     int n = tensor_numel(a);
 
-    
+    #pragma omp parallel for
+    for(int i = 0; i < n; i++){
+        if ((a->data[i] != 0.0f && a->data[i] != 1.0f) || (b->data[i] != 0.0f && b->data[i] != 1.0f)) {
+            fprintf(stderr, "Errore [&]: tensore logico deve contenere solo 0.0 e 1.0\n");
+            exit(1);
+        }
+        result->data[i] = ((a->data[i] != 0.0f) & (b->data[i] != 0.0f)) * 1.0f;
+
+    }
+
+    replace_top2_with_result(stack, a, b, result);
 
 }
 
 void op_or(tf_stack_t *stack) {
     // Implementazione dell'operazione logica OR
+    check_stack_size(stack, 2, "\|");
+    check_top2_are_tensors(stack, "\|");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "\|");
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+
+    #pragma omp parallel for
+    for(int i = 0; i < n; i++){
+        if ((a->data[i] != 0.0f && a->data[i] != 1.0f) || (b->data[i] != 0.0f && b->data[i] != 1.0f)) {
+            fprintf(stderr, "Errore [|]: tensore logico deve contenere solo 0.0 e 1.0\n");
+            exit(1);
+        }
+        result->data[i] = ((a->data[i] != 0.0f) || (b->data[i] != 0.0f)) * 1.0f;
+    }
+
+    replace_top2_with_result(stack, a, b, result);
+
 }
 
 void op_not(tf_stack_t *stack) {
     // Implementazione dell'operazione logica NOT
+    check_stack_size(stack, 1, "!");
+    check_top_is_tensor(stack, "!");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++) {
+        if (a->data[i] != 0.0f && a->data[i] != 1.0f) {
+            fprintf(stderr, "Errore [!]: tensore logico deve contenere solo 0.0 e 1.0\n");
+            exit(1);
+        }
+        result->data[i] = 1.0f - a->data[i];
+    }
+    replace_top1_with_result(stack, a, result);
 }
+
+//Si assume che il tensore m sia composto solo da 0.0 e 1.0
 
 //operazioni di selezione
 void op_select(tf_stack_t *stack ) {
-    // Implementazione dell'operazione di selezione
-}
+    check_stack_size(stack, 3, "$");
+    check_top2_are_tensors(stack, "$");
+    if (stack->items[stack->top - 2].type != STACK_TENSOR) {
+        fprintf(stderr, "Errore [%s]: il top dello stack non è un tensore\n", "$");
+        exit(1);
+    }
+    tensor_t *m = stack->items[stack->top].value.tensor;      // cima
+    tensor_t *a = stack->items[stack->top - 1].value.tensor;  // sotto
+    tensor_t *b = stack->items[stack->top - 2].value.tensor;  // sotto sotto
+    check_same_shape(a, b, "$");
+    check_same_shape(a, m, "$");
 
-//Si assume that m is a tensor composed only of 0.0 and 1.0: if the value is 1.0
-//the corresponding element from a is taken, otherwise from b. This allows to
-//select elements between the two tensors based on the mask tensor m. Clearly
-//all tensors must have the same dimensions.
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++) {
+        if (m->data[i] != 0.0f && m->data[i] != 1.0f) {
+            fprintf(stderr, "Errore [$]: tensore di maschera deve contenere solo 0.0 e 1.0\n");
+            exit(1);
+        }
+        result->data[i] = m->data[i] * a->data[i] + (1.0f - m->data[i]) * b->data[i];  
+        // se m == 0 a =0, b = b
+        // se m == 1 a = a, b = 0  
+    }
+
+    // rimuove m, a, b
+    stack_pop_tensor(stack);  // rimuove m (cima)
+    stack_pop_tensor(stack);  // rimuove a (sotto)
+    stack_pop_tensor(stack);  // rimuove b (sotto sotto)
+    tensor_decref(m);
+    tensor_decref(a);
+    tensor_decref(b);
+    stack_push_tensor(stack, result);  // push del risultato
+    tensor_decref(result);  // decref locale del risultato
+}
 
 
 
 //Operazioni specifiche per tensori
  void op_matmul(tf_stack_t *stack) {
     // Implementazione dell'operazione di moltiplicazione matriciale
+    check_stack_size(stack, 2, "@");
+    check_top2_are_tensors(stack, "@");
+    tensor_t *a = stack->items[stack->top].value.tensor;      
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+
+    if (a->ndim != 2 || b->ndim != 2) { //devono essere 2D
+        fprintf(stderr, "Errore [@]: entrambi i tensori devono essere 2D\n");
+        exit(1);
+    }
+
+    int M = a->shape[0], K = a->shape[1];
+    int K2 = b->shape[0], N = b->shape[1];
+
+    // Dimensioni compatibili: colonne di a == righe di b
+    if (K != K2) {
+        fprintf(stderr, "Errore [@]: dimensioni incompatibili (%dx%d) @ (%dx%d)\n", M, K, K2, N);
+        exit(1);
+    }
+
+    int shape[2] = {M, N};
+    tensor_t *result = tensor_alloc(shape, 2);
+
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float sum = 0.0f;
+            for (int k = 0; k < K; k++) {
+                sum += a->data[i * K + k] * b->data[k * N + j];
+            }
+            result->data[i * N + j] = sum;
+        }
+    }
+    replace_top2_with_result(stack, a, b, result);
 }
 
 void op_dot(tf_stack_t *stack) {
