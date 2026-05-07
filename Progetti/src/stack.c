@@ -1,3 +1,4 @@
+//NICOLAS DIMINICH SM3201661
 #include "stack.h"
 #include <stdio.h>
 #include <string.h>

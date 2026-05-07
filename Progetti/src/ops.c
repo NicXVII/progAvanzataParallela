@@ -1,5 +1,6 @@
 //NICOLAS DIMINICH SM3201661
 #include "ops.h"
+#include "ops_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,157 +82,122 @@ void execute_op(const char *op, tf_stack_t *stack) {
 
 //operazioni aritmetiche
 void op_add(tf_stack_t *stack) {
-    // Implementazione dell'operazione di addizione
-    if(stack->top < 1) {
-        fprintf(stderr, "Errore: stack sotto dimensionato per addizione\n");
-        exit(1);
-    }
-    stack_item_t *item_a = &stack->items[stack->top];
-    stack_item_t *item_b = &stack->items[stack->top - 1];
-    if (item_a->type != STACK_TENSOR || item_b->type != STACK_TENSOR) {
-        fprintf(stderr, "Errore: addizione richiede due tensori\n");
-        exit(1);
-    }
-    tensor_t *a = item_a->value.tensor;
-    tensor_t *b = item_b->value.tensor;
-    // Verifica che a e b abbiano la stessa forma
-    if ( a->ndim != b->ndim) {
-        fprintf(stderr, "Errore: i tensori devono avere lo stesso numero di dimensioni\n");
-        exit(1);
-
-    }
-    for (int i = 0; i < a->ndim; i++) {
-        if (a->shape[i] != b->shape[i]) {
-            fprintf(stderr, "Errore: i tensori devono avere la stessa forma\n");
-            exit(1);
-        }
-    }
+    check_stack_size(stack, 2, "+");
+    check_top2_are_tensors(stack, "+");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "+");
 
     tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
     #pragma omp parallel for
-    for (int i = 0; i < tensor_numel(a); i++) {
+    for (int i = 0; i < n; i++)
         result->data[i] = a->data[i] + b->data[i];
-    }
-    
-    stack_pop_tensor(stack);
-    stack_pop_tensor(stack);
-    tensor_decref(a);
-    tensor_decref(b);
-    
-    // Metti il risultato in cima allo stack
-    stack_push_tensor(stack, result);
-    tensor_decref(result); // Decref perché stack_push_tensor fa incref
 
+    replace_top2_with_result(stack, a, b, result);
 }
 
 void op_sub(tf_stack_t *stack) {
-    // Implementazione dell'operazione di sottrazione
-    if(stack->top < 1) {
-        fprintf(stderr, "Errore: stack sotto dimensionato per addizione\n");
-        exit(1);
-    }
-    stack_item_t *item_a = &stack->items[stack->top];
-    stack_item_t *item_b = &stack->items[stack->top - 1];
-    if (item_a->type != STACK_TENSOR || item_b->type != STACK_TENSOR) {
-        fprintf(stderr, "Errore: addizione richiede due tensori\n");
-        exit(1);
-    }
-    tensor_t *a = item_a->value.tensor;
-    tensor_t *b = item_b->value.tensor;
-    // Verifica che a e b abbiano la stessa forma
-    if ( a->ndim != b->ndim) {
-        fprintf(stderr, "Errore: i tensori devono avere lo stesso numero di dimensioni\n");
-        exit(1);
-
-    }
-
-    for (int i = 0; i < a->ndim; i++) {
-        if (a->shape[i] != b->shape[i]) {
-            fprintf(stderr, "Errore: i tensori devono avere la stessa forma\n");
-            exit(1);
-        }
-    }
+    check_stack_size(stack, 2, "-");
+    check_top2_are_tensors(stack, "-");
+    tensor_t *a = stack->items[stack->top].value.tensor;      // cima
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;  // sotto
+    check_same_shape(a, b, "-");
 
     tensor_t *result = tensor_alloc(a->shape, a->ndim);
-    
+    int n = tensor_numel(a);
     #pragma omp parallel for
-    for (int i = 0; i < tensor_numel(a); i++) {
-        result->data[i] = a->data[i] - b->data[i];
-    }
-    
-    stack_pop_tensor(stack);
-    stack_pop_tensor(stack);
-    tensor_decref(a);
-    tensor_decref(b);
-    
-    // Metti il risultato in cima allo stack
-    stack_push_tensor(stack, result);
-    tensor_decref(result); // Decref perché stack_push_tensor fa incref
+    for (int i = 0; i < n; i++)
+        result->data[i] = a->data[i] - b->data[i]; // b a -- a-b
 
+    replace_top2_with_result(stack, a, b, result);
 }
 
 void op_mul(tf_stack_t *stack) {
-    // Implementazione dell'operazione di moltiplicazione
-    if(stack->top < 1) {
-        fprintf(stderr, "Errore: stack sotto dimensionato per addizione\n");
-        exit(1);
-    }
-    stack_item_t *item_a = &stack->items[stack->top];
-    stack_item_t *item_b = &stack->items[stack->top - 1];
-    if (item_a->type != STACK_TENSOR || item_b->type != STACK_TENSOR) {
-        fprintf(stderr, "Errore: addizione richiede due tensori\n");
-        exit(1);
-    }
-    tensor_t *a = item_a->value.tensor;
-    tensor_t *b = item_b->value.tensor;
-    // Verifica che a e b abbiano la stessa forma
-    if ( a->ndim != b->ndim) {
-        fprintf(stderr, "Errore: i tensori devono avere lo stesso numero di dimensioni\n");
-        exit(1);
-
-    }
-    for (int i = 0; i < a->ndim; i++) {
-        if (a->shape[i] != b->shape[i]) {
-            fprintf(stderr, "Errore: i tensori devono avere la stessa forma\n");
-            exit(1);
-        }
-    }
+    check_stack_size(stack, 2, "*");
+    check_top2_are_tensors(stack, "*");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "*");
 
     tensor_t *result = tensor_alloc(a->shape, a->ndim);
-
+    int n = tensor_numel(a);
     #pragma omp parallel for
-    for (int i = 0; i < tensor_numel(a); i++) {
+    for (int i = 0; i < n; i++)
         result->data[i] = a->data[i] * b->data[i];
-    }    
 
-    stack_pop_tensor(stack);
-    stack_pop_tensor(stack);
-    tensor_decref(a);
-    tensor_decref(b);
-    
-    // Metti il risultato in cima allo stack
-    stack_push_tensor(stack, result);
-    tensor_decref(result); // Decref perché stack_push_tensor fa incref
+    replace_top2_with_result(stack, a, b, result);
 }
 
 
 //Operazioni di comparazione
 void op_lt(tf_stack_t *stack) {
     // Implementazione dell'operazione di confronto "less than"
+    check_stack_size(stack, 2, "<");
+    check_top2_are_tensors(stack, "<");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "<");
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        result->data[i] = (a->data[i] < b->data[i]) * 1.0f; // se a[i] < b[i] allora 1.0 altrimenti 0.0
+
+    replace_top2_with_result(stack, a, b, result);
+
 }
 
 void op_gt(tf_stack_t *stack) {
     // Implementazione dell'operazione di confronto "greater than"
+    check_stack_size(stack, 2, ">");
+    check_top2_are_tensors(stack, ">");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, ">");
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        result->data[i] = (a->data[i] > b->data[i]) * 1.0f; // se a[i] > b[i] allora 1.0 altrimenti 0.0
+
+    replace_top2_with_result(stack, a, b, result);
 }
 
 void op_eq(tf_stack_t *stack) {
     // Implementazione dell'operazione di confronto "equal to"
+    check_stack_size(stack, 2, "==");
+    check_top2_are_tensors(stack, "==");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "==");
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        result->data[i] = (a->data[i] == b->data[i]) * 1.0f; // se a[i] ==b[i] allora 1.0 altrimenti 0.0
+
+    replace_top2_with_result(stack, a, b, result);
 }
 
 //Operazioni logiche
 
 void op_and(tf_stack_t *stack) {
     // Implementazione dell'operazione logica AND
+    check_stack_size(stack, 2, "&");
+    check_top2_are_tensors(stack, "&");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "&");
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+
+    
+
 }
 
 void op_or(tf_stack_t *stack) {

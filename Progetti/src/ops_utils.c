@@ -4,7 +4,7 @@
  * Implementazione delle funzioni di supporto per gli operatori di TensorForth.
  */
 
-#include "ops_util.h"
+#include "ops_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -16,8 +16,7 @@
  */
 void check_stack_size(tf_stack_t *stack, int n, const char *op_name) {
     if (stack->top < n - 1) {
-        fprintf(stderr, "Errore [%s]: stack insufficiente (top=%d, richiesti=%d)\n",
-                op_name, stack->top, n);
+        fprintf(stderr, "Errore [%s]: stack insufficiente (top=%d, richiesti=%d)\n",op_name, stack->top, n);
         exit(1);
     }
 }
