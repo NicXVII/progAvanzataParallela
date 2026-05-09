@@ -7,6 +7,9 @@
 #include "tensor.h"
 
 void op_and(tf_stack_t *stack);
+void op_or(tf_stack_t *stack);
+void op_not(tf_stack_t *stack);
+void op_select(tf_stack_t *stack);
 void op_matmul(tf_stack_t *stack);
 
 static void fail(const char *msg) {
@@ -154,6 +157,163 @@ static void test_and_all_zeros(void) {
     tensor_decref(result);
     tensor_decref(a);
     tensor_decref(b);
+}
+
+static void test_or_vectors(void) {
+    printf("\n=== TEST OR vettori ===\n");
+    tf_stack_t stack;
+    stack_init(&stack);
+
+    tensor_t *a = make_vec3_logic(1.0f, 0.0f, 1.0f);
+    tensor_t *b = make_vec3_logic(1.0f, 1.0f, 0.0f);
+
+    stack_push_tensor(&stack, a);
+    stack_push_tensor(&stack, b);
+
+    op_or(&stack);
+
+    if (stack.top != 0) {
+        fail("op_or deve lasciare un solo risultato nello stack");
+    }
+
+    tensor_t *result = stack_pop_tensor(&stack);
+    /* Risultato atteso: [1.0 | 1.0 = 1.0, 0.0 | 1.0 = 1.0, 1.0 | 0.0 = 1.0] */
+    printf("\n[OR] dettagli\n");
+    print_vec3("A", a);
+    print_vec3("B", b);
+    for (int i = 0; i < 3; i++) {
+        printf("A[%d] | B[%d] = %.0f | %.0f = %.0f\n", i, i, a->data[i], b->data[i], result->data[i]);
+    }
+    print_vec3("Risultato OR", result);
+    assert_vec3_eq(result, 1.0f, 1.0f, 1.0f);
+
+    printf("✅ test_or_vectors PASSATO\n");
+
+    tensor_decref(result);
+    tensor_decref(a);
+    tensor_decref(b);
+}
+
+static void test_or_all_zeros(void) {
+    printf("\n=== TEST OR con tutti 0.0 ===\n");
+    tf_stack_t stack;
+    stack_init(&stack);
+
+    tensor_t *a = make_vec3_logic(0.0f, 0.0f, 0.0f);
+    tensor_t *b = make_vec3_logic(0.0f, 0.0f, 0.0f);
+
+    stack_push_tensor(&stack, a);
+    stack_push_tensor(&stack, b);
+
+    op_or(&stack);
+
+    tensor_t *result = stack_pop_tensor(&stack);
+    printf("\n[OR] dettagli (tutti 0)\n");
+    print_vec3("A", a);
+    print_vec3("B", b);
+    print_vec3("Risultato OR", result);
+    assert_vec3_eq(result, 0.0f, 0.0f, 0.0f);
+
+    printf("✅ test_or_all_zeros PASSATO\n");
+
+    tensor_decref(result);
+    tensor_decref(a);
+    tensor_decref(b);
+}
+
+static void test_not_vector(void) {
+    printf("\n=== TEST NOT vettore ===\n");
+    tf_stack_t stack;
+    stack_init(&stack);
+
+    tensor_t *a = make_vec3_logic(1.0f, 0.0f, 1.0f);
+
+    stack_push_tensor(&stack, a);
+
+    op_not(&stack);
+
+    if (stack.top != 0) {
+        fail("op_not deve lasciare un solo risultato nello stack");
+    }
+
+    tensor_t *result = stack_pop_tensor(&stack);
+    /* Risultato atteso: [!1.0 = 0.0, !0.0 = 1.0, !1.0 = 0.0] */
+    printf("\n[NOT] dettagli\n");
+    print_vec3("A", a);
+    for (int i = 0; i < 3; i++) {
+        printf("!A[%d] = !%.0f = %.0f\n", i, a->data[i], result->data[i]);
+    }
+    print_vec3("Risultato NOT", result);
+    assert_vec3_eq(result, 0.0f, 1.0f, 0.0f);
+
+    printf("✅ test_not_vector PASSATO\n");
+
+    tensor_decref(result);
+    tensor_decref(a);
+}
+
+static void test_not_all_zeros(void) {
+    printf("\n=== TEST NOT con tutti 0.0 ===\n");
+    tf_stack_t stack;
+    stack_init(&stack);
+
+    tensor_t *a = make_vec3_logic(0.0f, 0.0f, 0.0f);
+
+    stack_push_tensor(&stack, a);
+
+    op_not(&stack);
+
+    tensor_t *result = stack_pop_tensor(&stack);
+    printf("\n[NOT] dettagli (tutti 0)\n");
+    print_vec3("A", a);
+    print_vec3("Risultato NOT", result);
+    assert_vec3_eq(result, 1.0f, 1.0f, 1.0f);
+
+    printf("✅ test_not_all_zeros PASSATO\n");
+
+    tensor_decref(result);
+    tensor_decref(a);
+}
+
+static void test_select_vector(void) {
+    printf("\n=== TEST SELECT (ternario) vettore ===\n");
+    tf_stack_t stack;
+    stack_init(&stack);
+
+    tensor_t *a = make_vec3_logic(1.0f, 2.0f, 3.0f);  /* valori "veri" */
+    tensor_t *b = make_vec3_logic(10.0f, 20.0f, 30.0f); /* valori "falsi" */
+    tensor_t *m = make_vec3_logic(1.0f, 0.0f, 1.0f);   /* maschera: seleziona a quando 1, b quando 0 */
+
+    /* Stack order: bottom -> top: b, a, m */
+    stack_push_tensor(&stack, b);
+    stack_push_tensor(&stack, a);
+    stack_push_tensor(&stack, m);
+
+    op_select(&stack);
+
+    if (stack.top != 0) {
+        fail("op_select deve lasciare un solo risultato nello stack");
+    }
+
+    tensor_t *result = stack_pop_tensor(&stack);
+    /* Risultato atteso: [m=1 ? a=1 : b=10 = 1, m=0 ? a=2 : b=20 = 20, m=1 ? a=3 : b=30 = 3] */
+    printf("\n[SELECT] dettagli\n");
+    printf("A (true):  "); print_vec3("", a);
+    printf("B (false): "); print_vec3("", b);
+    printf("M (mask):  "); print_vec3("", m);
+    for (int i = 0; i < 3; i++) {
+        printf("M[%d]=%1.0f ? A[%d] : B[%d] = %1.0f ? %.0f : %.0f = %.0f\n", 
+               i, m->data[i], i, i, m->data[i], a->data[i], b->data[i], result->data[i]);
+    }
+    printf("Risultato SELECT: "); print_vec3("", result);
+    assert_vec3_eq(result, 1.0f, 20.0f, 3.0f);
+
+    printf("✅ test_select_vector PASSATO\n");
+
+    tensor_decref(result);
+    tensor_decref(a);
+    tensor_decref(b);
+    tensor_decref(m);
 }
 
 static void test_matmul_2x3_times_3x2(void) {
@@ -334,12 +494,23 @@ static void benchmark_matmul(void) {
 }
 
 int main(void) {
-    printf("=== Test operatori AND e MATMUL ===\n");
+    printf("=== Test operatori AND, OR, NOT, SELECT e MATMUL ===\n");
 
     /* Test operatore AND */
     test_and_vectors();
     test_and_all_ones();
     test_and_all_zeros();
+
+    /* Test operatore OR */
+    test_or_vectors();
+    test_or_all_zeros();
+
+    /* Test operatore NOT */
+    test_not_vector();
+    test_not_all_zeros();
+
+    /* Test operatore SELECT */
+    test_select_vector();
 
     /* Test operatore MATMUL */
     test_matmul_2x3_times_3x2();
@@ -349,6 +520,6 @@ int main(void) {
     /* Benchmark */
     benchmark_matmul();
 
-    printf("\n✅ OK: tutti i test operazioni AND e MATMUL completati.\n");
+    printf("\n✅ OK: tutti i test operazioni AND, OR, NOT, SELECT e MATMUL completati.\n");
     return 0;
 }

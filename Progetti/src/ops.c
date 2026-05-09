@@ -321,31 +321,100 @@ void op_select(tf_stack_t *stack ) {
     int shape[2] = {M, N};
     tensor_t *result = tensor_alloc(shape, 2);
 
-    #pragma omp parallel for collapse(2)
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < N; j++) {
-            float sum = 0.0f;
+    memset(result->data, 0, M * N * sizeof(float));
+
+        #pragma omp parallel for
+        for (int i = 0; i < M; i++) {
             for (int k = 0; k < K; k++) {
-                sum += a->data[i * K + k] * b->data[k * N + j];
+                float aik = a->data[i * K + k]; 
+                for (int j = 0; j < N; j++) {
+                    result->data[i * N + j] += aik * b->data[k * N + j];
+                }
             }
-            result->data[i * N + j] = sum;
         }
-    }
     replace_top2_with_result(stack, a, b, result);
+
+
 }
 
 void op_dot(tf_stack_t *stack) {
     // Implementazione dell'operazione di prodotto scalare
+    check_stack_size(stack, 2, ".");
+    check_top2_are_tensors(stack, ".");
+    tensor_t *a = stack->items[stack->top].value.tensor;      
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+
+    check_same_shape(a, b, ".");
+    
+    int shape[0] = {1}; // tensore 0D
+    tensor_t *result = tensor_alloc(shape, 1); 
+    result->data[0] = 0.0f;
+    int n = tensor_numel(a);
+
+    float sum = 0.0f;
+    #pragma omp parallel for reduction(+:sum)
+    for (int i = 0; i < n; i++)
+        sum += a->data[i] * b->data[i];
+    result->data[0] = sum;
+
+
+    replace_top2_with_result(stack, a, b, result);
+
+
+
 }
 
 void op_conv(tf_stack_t *stack) {
-    // Implementazione dell'operazione di convoluzione
+    check_stack_size(stack, 2, "c");
+    check_top2_are_tensors(stack, "c");
+    tensor_t *kernel = stack->items[stack->top].value.tensor;
+    tensor_t *a = stack->items[stack->top - 1].value.tensor;
+
+    if (a->ndim != 2 || kernel->ndim != 2) {
+        fprintf(stderr, "Errore [c]: entrambi i tensori devono essere 2D\n");
+        exit(1);
+    }
+
+    int H = a->shape[0], W = a->shape[1];
+    int KH = kernel->shape[0], KW = kernel->shape[1];
+
+    int shape[2] = {H, W};                             
+    tensor_t *result = tensor_alloc(shape, 2);
+    memset(result->data, 0, H * W * sizeof(float));    //inizializzo con zero, non viene fatto con la malloc
+
+    #pragma omp parallel for
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) { //scorro prima sulla matrice a, poi su kernel
+            float sum = 0.0f;
+            for (int ki = 0; ki < KH; ki++) {
+                for (int kj = 0; kj < KW; kj++) {
+                    int ai = i + ki - KH/2;
+                    int aj = j + kj - KW/2;
+
+                    int valid = (ai >= 0) & (ai < H) & (aj >= 0) & (aj < W); //forzo con &  a fare operazione bit a bit invece del salto condizionale
+                    int ai_clamped = ai * valid;
+                    int aj_clamped = aj * valid;
+
+                    sum += valid * a->data[ai_clamped * W + aj_clamped]
+                                 * kernel->data[ki * KW + kj];
+                }
+            }
+            result->data[i * W + j] = sum;
+            
+            
+        }
+    }
+
+    replace_top2_with_result(stack, a, kernel, result);
+
 }
 
 
 //Operazioni sulla forma dei tensori
 tensor_t * op_reshape(tf_stack_t *stack) {
     // Implementazione dell'operazione di reshape
+    
+
 }
 
 tensor_t * op_ravel(tf_stack_t *stack) {
