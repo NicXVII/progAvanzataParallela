@@ -411,20 +411,64 @@ void op_conv(tf_stack_t *stack) {
 
 
 //Operazioni sulla forma dei tensori
-tensor_t * op_reshape(tf_stack_t *stack) {
-    // Implementazione dell'operazione di reshape
-    
+void op_reshape(tf_stack_t *stack) {
+    check_stack_size(stack, 2, "r");
+    check_top2_are_tensors(stack, "r");
+    tensor_t *s = stack->items[stack->top].value.tensor;      // s in cima
+    tensor_t *a = stack->items[stack->top - 1].value.tensor;  // a sotto
+
+    // s deve essere 1D con 1 o 2 elementi
+    if (s->ndim != 1 || s->shape[0] < 1 || s->shape[0] > MAX_DIM) {
+        fprintf(stderr, "Errore [r]: s non valido\n");
+        exit(1);
+    }
+
+    // verifica compatibilità PRIMA di fare qualsiasi cosa
+    int total_s = 1;
+    for (int i = 0; i < s->shape[0]; i++)
+        total_s *= (int)s->data[i]; //trovo numero totale di elementi nel nuovo shape
+
+    if (tensor_numel(a) != total_s) {
+        fprintf(stderr, "Errore [r]: dimensioni incompatibili\n");
+        exit(1);
+    }
+
+    // aggiorna solo i metadati di a, data rimane invariato
+    a->ndim = s->shape[0];
+    for (int i = 0; i < a->ndim; i++)
+        a->shape[i] = (int)s->data[i];
+
+    stack_pop_tensor(stack);  // rimuove s (cima)
+    tensor_decref(s);
 
 }
-
-tensor_t * op_ravel(tf_stack_t *stack) {
+void op_ravel(tf_stack_t *stack) {
     // Implementazione dell'operazione di ravel
     //torna versione 1D del tensore
+    check_stack_size(stack, 1, "r");
+    check_top_is_tensor(stack, "r");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+
+    a-> shape[0] = tensor_numel(a);
+    a->ndim = 1;
+
+
 }
 
-int * op_shape(tf_stack_t *stack) {
-    // Implementazione dell'operazione di shape
-    //torna un vettore con la dimesione di a
+void op_shape(tf_stack_t *stack) {
+    // ritorna un vettore rappresentante le dimensioni di a
+    check_stack_size(stack, 1, "#");
+    check_top_is_tensor(stack, "#");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+     // il risultato è un tensore 1D con ndim elementi
+    
+    int shape[1] = {a->ndim};
+    tensor_t *result = tensor_alloc(shape, 1);
+
+    for (int i = 0; i < a->ndim; i++)
+        result->data[i] = (float)a->shape[i];
+
+    stack_push_tensor(stack, result); 
 }
 
 
@@ -432,6 +476,28 @@ int * op_shape(tf_stack_t *stack) {
 void op_rand(tf_stack_t *stack) {
     // Implementazione dell'operazione di generazione di numeri casuali
     //torna un tensore con valori casuali tra 0,1
+
+    check_stack_size(stack, 1, "?");
+    check_top_is_tensor(stack, "?");
+    tensor_t *shape_tensor = stack->items[stack->top].value.tensor;
+
+    if (shape_tensor->ndim != 1 || shape_tensor->shape[0] < 1 || shape_tensor->shape[0] > MAX_DIM) {
+        fprintf(stderr, "Errore [?]: shape non valido\n");
+        exit(1);
+    }
+
+    int total_size = 1;
+    for (int i = 0; i < shape_tensor->shape[0]; i++)
+        total_size *= (int)shape_tensor->data[i];
+
+    int shape[1] = {total_size};
+    tensor_t *result = tensor_alloc(shape, 1);
+
+    for (int i = 0; i < total_size; i++)
+        result->data[i] = (float)rand() / RAND_MAX;
+
+    stack_push_tensor(stack, result);
+    tensor_decref(result);  // decref locale del risultato
 }
 
 
