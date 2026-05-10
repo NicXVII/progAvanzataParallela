@@ -21,7 +21,7 @@ else
 endif
 
 tensorforth: $(OBJS)
-	$(CC) $(CFLAGS) -o tensorforth $(OBJS) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o tensorforth $(OBJS) $(LDFLAGS) -lm
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -42,14 +42,14 @@ clean:
 
 test: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
 	gcc -O2 -Wall -I$(INCDIR) -o test_stack \
-	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
+	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o -lm
 
 test_main.o: test_main.c
-	gcc -O2 -Wall -I$(INCDIR) -c test_main.c -o test_main.o
+	gcc -O2 -Wall -I$(INCDIR) -c test_main.c -o test_main.o -lm
 
 test_ops_and_matmul: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_ops_and_matmul.o
 	$(CC) $(CFLAGS) -o test_ops_and_matmul \
-	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_ops_and_matmul.o $(LDFLAGS)
+	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_ops_and_matmul.o $(LDFLAGS) -lm
 
 $(SRCDIR)/test_ops_and_matmul.o: $(SRCDIR)/test_ops_and_matmul.c $(INCDIR)/tensor.h $(INCDIR)/stack.h $(INCDIR)/ops.h
-	$(CC) $(CFLAGS) -c $(SRCDIR)/test_ops_and_matmul.c -o $(SRCDIR)/test_ops_and_matmul.o
+	$(CC) $(CFLAGS) -c $(SRCDIR)/test_ops_and_matmul.c -o $(SRCDIR)/test_ops_and_matmul.o -lm

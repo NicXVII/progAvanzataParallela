@@ -506,15 +506,55 @@ void op_rand(tf_stack_t *stack) {
 
 void op_relu(tf_stack_t *stack) {
     // Implementazione dell'operazione di ReLU
+    //tutti gli elementi di anegativi sonosostituiti con 0(relu(x) = max(0, x))
+    check_stack_size(stack, 1, "R");
+    check_top_is_tensor(stack, "R");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        a->data[i] = fmaxf(0.0f, a->data[i]);
+
+    
+
+
 }
 
 void op_min(tf_stack_t *stack) {
     // Implementazione dell'operazione di minimo elemento per elemento     ritorna elemento perelemento il minimo tra a e b
+    check_stack_size(stack, 2, "m");
+    check_top2_are_tensors(stack, "m");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "m");
+
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        result->data[i] = fminf(a->data[i], b->data[i]);
+    
+    replace_top2_with_result(stack, a, b, result);
+
 
 }
 
 void op_max(tf_stack_t *stack) {
     // Implementazione dell'operazione di massimo elemento per elemento     ritorna elemento perelemento il massimo tra a e b
+        // Implementazione dell'operazione di minimo elemento per elemento     ritorna elemento perelemento il minimo tra a e b
+    check_stack_size(stack, 2, "M");
+    check_top2_are_tensors(stack, "M");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_t *b = stack->items[stack->top - 1].value.tensor;
+    check_same_shape(a, b, "M");
+    
+    tensor_t *result = tensor_alloc(a->shape, a->ndim);
+    int n = tensor_numel(a);
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        result->data[i] = fmaxf(a->data[i], b->data[i]);
+    
+    replace_top2_with_result(stack, a, b, result);
 
 }
 
@@ -525,30 +565,78 @@ void op_max(tf_stack_t *stack) {
 void op_sum(tf_stack_t *stack) {
     // Implementazione dell'operazione di somma di tutti gli elementi del tensore
     //ritorna un tensore 0D con la somma di tutti gli elementi di a
-}
+    check_stack_size(stack, 1, "S");
+    check_top_is_tensor(stack, "S");
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    int shape[1] = {1}; // tensore 1D di un elemento
+    tensor_t *result = tensor_alloc(shape, 1);
+    
+    float sum = 0.0f;
+
+    int n = tensor_numel(a);
+    #pragma omp parallel for reduction(+:sum) // faccio la somma delle somme quando finiscono tutti i thread
+    for (int i = 0; i < n; i++)
+        sum += a->data[i];
+    
+    result->data[0] = sum;
+    replace_top1_with_result(stack, a, result);
+}   
 
 //Operazioni di filling di tensori
 void op_fill(tf_stack_t *stack) {
-    // Implementazione dell'operazione di filling di un tensore con un valore specifico
-    //riempie un tensore con un valore specifico
+    check_stack_size(stack, 2, "f");
+    check_top2_are_tensors(stack, "f");
+    tensor_t *v = stack->items[stack->top].value.tensor;      // v in cima
+    tensor_t *s = stack->items[stack->top - 1].value.tensor;  // s sotto
+
+    if (s->ndim != 1 || s->shape[0] < 1 || s->shape[0] > MAX_DIM) {
+        fprintf(stderr, "Errore [f]: s deve essere 1D con 1 o 2 elementi\n");
+        exit(1);
+    }
+    if (v->ndim != 1) {
+        fprintf(stderr, "Errore [f]: v deve essere un tensore 1D\n");
+        exit(1);
+    }
+
+    int shape[MAX_DIM];
+    for (int i = 0; i < s->shape[0]; i++)
+        shape[i] = (int)s->data[i];                         
+
+    tensor_t *result = tensor_alloc(shape, s->shape[0]);    
+    int size_v = tensor_numel(v);
+
+    #pragma omp parallel for
+    for (int i = 0; i < tensor_numel(result); i++)
+        result->data[i] = v->data[i % size_v];      // struttando il modulo rimango sempre dentro i limiti di v        
+    replace_top2_with_result(stack, s, v, result);
 }
-
-
 
 //Operazioni di utilità
 void op_print(tf_stack_t *stack) {
-    //stampa il contenuto del tensore
-    if(stack->top < 0) {
-        fprintf(stderr, "Errore: stack vuoto\n");
-        exit(1);
+    check_stack_size(stack, 1, "P");
+    check_top_is_tensor(stack, "P");
+
+    tensor_t *a = stack->items[stack->top].value.tensor;
+
+    print("Tensor(shape=[");
+    for (int i = 0; i < a->ndim; i++) {
+        print("%d", a->shape[i]);
+        if (i < a->ndim - 1)
+            print(", ");
+    
     }
-    tensor_t *t = stack->items[stack->top].value.tensor;
-    printf("Tensor (ndim=%d, shape=[", t->ndim);
-    for (int i = 0; i < t->ndim; i++) {
-        printf("%d", t->shape[i]);
-        if (i < t->ndim - 1) printf(", ");
+    print("], data=[");
+    int n = tensor_numel(a);
+    for (int i = 0; i < n; i++) {
+        print("%.4f", a->data[i]);
+        if (i < n - 1)
+            print(", ");
+
     }
-    printf("])\n");
+    print("])");
+
+    stack_pop_tensor(stack);
+    decref(a);
 }
 
 
