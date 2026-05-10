@@ -13,11 +13,11 @@ ifeq ($(UNAME), Darwin)
     CFLAGS  = -O2 -march=native -Wall -Wextra -I$(INCDIR) \
               -Xpreprocessor -fopenmp \
               -I$(BREW_PREFIX)/include
-    LDFLAGS = -L$(BREW_PREFIX)/lib -lomp
+    LDFLAGS = -L$(BREW_PREFIX)/lib -lomp -lm
 else
     # Linux
     CFLAGS  = -O2 -march=native -fopenmp -Wall -Wextra -I$(INCDIR)
-    LDFLAGS =
+    LDFLAGS = -lm
 endif
 
 tensorforth: $(OBJS)
@@ -38,7 +38,7 @@ $(SRCDIR)/main.o:      $(SRCDIR)/main.c      $(INCDIR)/stack.h    \
                         $(INCDIR)/ops.h      $(INCDIR)/lexer.h
 
 clean:
-	rm -f $(OBJS) tensorforth test_stack test_main.o test_ops_and_matmul test_ops_and_matmul.o
+	rm -f $(OBJS) tensorforth test_stack test_main.o test_ops_and_matmul test_ops_and_matmul.o test_all_ops test_all_ops.o
 
 test: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o test_main.o
 	gcc -O2 -Wall -I$(INCDIR) -o test_stack \
@@ -52,4 +52,11 @@ test_ops_and_matmul: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o 
 	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_ops_and_matmul.o $(LDFLAGS) -lm
 
 $(SRCDIR)/test_ops_and_matmul.o: $(SRCDIR)/test_ops_and_matmul.c $(INCDIR)/tensor.h $(INCDIR)/stack.h $(INCDIR)/ops.h
-	$(CC) $(CFLAGS) -c $(SRCDIR)/test_ops_and_matmul.c -o $(SRCDIR)/test_ops_and_matmul.o -lm
+	$(CC) $(CFLAGS) -c $(SRCDIR)/test_ops_and_matmul.c -o $(SRCDIR)/test_ops_and_matmul.o
+
+test_all_ops: $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_all_ops.o
+	$(CC) $(CFLAGS) -o test_all_ops \
+	    $(SRCDIR)/tensor.o $(SRCDIR)/stack.o $(SRCDIR)/ops_utils.o $(SRCDIR)/ops.o $(SRCDIR)/test_all_ops.o $(LDFLAGS)
+
+$(SRCDIR)/test_all_ops.o: $(SRCDIR)/test_all_ops.c $(INCDIR)/tensor.h $(INCDIR)/stack.h $(INCDIR)/ops.h
+	$(CC) $(CFLAGS) -c $(SRCDIR)/test_all_ops.c -o $(SRCDIR)/test_all_ops.o -lm
