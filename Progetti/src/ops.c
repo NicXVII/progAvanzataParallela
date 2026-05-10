@@ -618,25 +618,25 @@ void op_print(tf_stack_t *stack) {
 
     tensor_t *a = stack->items[stack->top].value.tensor;
 
-    print("Tensor(shape=[");
+    printf("Tensor(shape=[");
     for (int i = 0; i < a->ndim; i++) {
-        print("%d", a->shape[i]);
+        printf("%d", a->shape[i]);
         if (i < a->ndim - 1)
-            print(", ");
+            printf(", ");
     
     }
-    print("], data=[");
+    printf("], data=[");
     int n = tensor_numel(a);
     for (int i = 0; i < n; i++) {
-        print("%.4f", a->data[i]);
+        printf("%.4f", a->data[i]);
         if (i < n - 1)
-            print(", ");
+            printf(", ");
 
     }
-    print("])");
+    printf("])");
 
     stack_pop_tensor(stack);
-    decref(a);
+    tensor_decref(a);
 }
 
 
@@ -644,17 +644,45 @@ void op_print(tf_stack_t *stack) {
 
 void op_dup(tf_stack_t *stack) {
     // Duplica l'elemento in cima allo stack
+    check_stack_size(stack, 1, "d");
+    check_top_is_tensor(stack, "d");
+
+    tensor_t *a = stack->items[stack->top].value.tensor;
+    tensor_incref(a);
 }
 void op_swap(tf_stack_t *stack) {
-    // Scambia i due elementi in cima allo stack
+    check_stack_size(stack, 2, "s");
+
+    stack_item_t tmp = stack->items[stack->top]; //variabile temp che salva top
+    stack->items[stack->top]     = stack->items[stack->top - 1];
+    stack->items[stack->top - 1] = tmp;
 }
 
 void op_over(tf_stack_t *stack) {
     // Copia il secondo elemento dallo stack e lo mette in cima
+    check_stack_size(stack, 2, "o");
+
+    stack_item_t item = stack->items[stack->top - 1]; // secondo elemento dallo stack
+    if (item.type == STACK_TENSOR) 
+        tensor_incref(item.value.tensor);
+    else{
+
+    }
 }
 
 void op_drop(tf_stack_t *stack) {
     // Rimuove l'elemento in cima allo stack
+    check_stack_size(stack, 1, "D");
+
+    stack_item_t item = stack->items[stack->top];
+    if (item.type == STACK_TENSOR) {
+        stack_pop_tensor(stack);
+        tensor_decref(item.value.tensor);
+    } else {
+        stack_pop_string(stack);
+        free(item.value.string);
+    }
+
 }
 
 
@@ -662,6 +690,7 @@ void op_drop(tf_stack_t *stack) {
 //I/O operations
 void op_read_pgm(tf_stack_t *stack) {
     // Implementazione dell'operazione di lettura di un'immagine PGM
+    
 }
 
 void op_write_pgm(tf_stack_t *stack) {
