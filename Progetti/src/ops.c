@@ -645,10 +645,15 @@ void op_print(tf_stack_t *stack) {
 void op_dup(tf_stack_t *stack) {
     // Duplica l'elemento in cima allo stack
     check_stack_size(stack, 1, "d");
-    check_top_is_tensor(stack, "d");
+    stack_item_t item = stack->items[stack->top];
 
-    tensor_t *a = stack->items[stack->top].value.tensor;
-    tensor_incref(a);
+    if (item.type == STACK_TENSOR) {
+        stack->top++;
+        tensor_incref(item.value.tensor);
+        stack->items[stack->top] = item;
+    } else {
+        stack_push_string(stack, item.value.string); //push string aumenta gia il top
+    }
 }
 void op_swap(tf_stack_t *stack) {
     check_stack_size(stack, 2, "s");
@@ -663,11 +668,14 @@ void op_over(tf_stack_t *stack) {
     check_stack_size(stack, 2, "o");
 
     stack_item_t item = stack->items[stack->top - 1]; // secondo elemento dallo stack
-    if (item.type == STACK_TENSOR) 
-        tensor_incref(item.value.tensor);
-    else{
 
-    }
+    if (item.type == STACK_TENSOR){
+        stack->top++;
+        stack->items[stack->top] = item;
+        tensor_incref(item.value.tensor);
+    }else{
+        stack_push_string(stack, item.value.string);
+    }    
 }
 
 void op_drop(tf_stack_t *stack) {
