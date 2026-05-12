@@ -698,11 +698,133 @@ void op_drop(tf_stack_t *stack) {
 //I/O operations
 void op_read_pgm(tf_stack_t *stack) {
     // Implementazione dell'operazione di lettura di un'immagine PGM
+    check_stack_size(stack, 1, "(");
+    check_top_is_string(stack, "(");
+
+    char *filename = stack_pop_string(stack);
+
+    if(filename == NULL || filename[0] == '\0') {
+        fprintf(stderr, "Errore: nome file non valido '%s'\n", filename);
+        free(filename);
+        exit(1);
+    }
+
+
+    tensor_t *img;
+
+    if (tensor_from_pgm(filename, &img) != 0) {
+        fprintf(stderr, "Errore: impossibile leggere l'immagine '%s'\n", filename);
+        free(filename);
+        exit(1);
+
+    }
+
+
+    
+    
     
 }
 
+
+int tensor_from_pgm(const char *filename, tensor_t **out)
+{
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        fprintf(stderr, "Errore: impossibile aprire il file '%s'\n", filename);
+        exit(1);
+    }
+
+
+    char magic[3] = {0}; 
+
+    if(fscanf(fp, "%2s", magic)  != 1 || strcmp(magic, "P5") != 0) {
+        fprintf(stderr, "Errore: formato PGM non valido (deve iniziare con 'P5')\n");
+        fclose(fp);
+        exit(1);
+    }
+
+    int width, height;
+    if (fscanf(fp, "%d %d", &width, &height) != 2) {
+        // errore: non sono riuscito a leggere due interi
+        fprintf(stderr, "Errore: impossibile leggere le dimensioni dell'immagine\n");
+        fclose(fp);
+        exit(1);
+    }
+
+    int maxval;
+    if (fscanf(fp, "%d", &maxval) != 1) {
+        fprintf(stderr, "Errore: impossibile leggere il valore massimo dei pixel\n");
+        fclose(fp);
+        exit(1);
+    }
+
+
+
+
+
+    int sep = fgetc(fp);
+    if (sep == EOF) {
+        fprintf(stderr, "Errore: file PGM troncato dopo l'header\n");
+        fclose(fp);
+        exit(1);
+    }
+
+    tensor_t *img = tensor_alloc((int[]){height, width}, 2);
+
+
+    for (int i = 0; i < height * width; i++) {
+        int pixel = fgetc(fp);
+        if (pixel == EOF) {
+            fprintf(stderr, "Errore: file troppo corto, aspettavo %d pixel ma ne ho letti solo %d\n", height * width, i);
+            tensor_decref(img);
+            fclose(fp);
+            exit(1);
+        }
+        img->data[i] = (float)pixel / maxval;
+    }
+
+    fclose(fp);
+    *out = img;
+    return 0;
+}
+
+
 void op_write_pgm(tf_stack_t *stack) {
     // Implementazione dell'operazione di scrittura di un'immagine PGM
+    check_stack_size(stack, 2, ")");
+    check_top_is_string(stack, ")");
+    stack_item_t img_item = stack->items[stack->top - 1];
+    if (img_item.type != STACK_TENSOR) {
+        fprintf(stderr, "Errore: il secondo elemento dello stack deve essere un tensore\n");
+        exit(1);
+    }
+
+    char *filename = stack_pop_string(stack);
+    tensor_t *img = img_item.value.tensor;
+
+    if (filename == NULL || filename[0] == '\0') {
+        fprintf(stderr, "Errore: nome file non valido '%s'\n", filename);
+        free(filename);
+        exit(1);
+    }
+
+    if (img->ndim != 2) {
+        fprintf(stderr, "Errore: il tensore da salvare deve essere 2D\n");
+        free(filename);
+        exit(1);
+    }
+
+    if (tensor_to_pgm(img, filename) != 0) {
+        fprintf(stderr, "Errore: impossibile scrivere l'immagine '%s'\n", filename);
+        free(filename);
+        exit(1);
+    }
+
+    stack_pop_tensor(stack); // rimuove il tensore dopo averlo salvato
+    free(filename);
+
+
+
 }
 
 void op_read_bin(tf_stack_t *stack) {
