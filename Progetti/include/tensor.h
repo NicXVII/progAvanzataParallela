@@ -17,7 +17,16 @@ struct tensor {
     off_t    mmap_size;
 };
 
+
+struct on_disk_tensor {
+    int32_t shape[MAX_DIM];
+    int32_t ndim;
+    off_t   data_offset;
+};
+
+
 typedef struct tensor tensor_t;
+typedef struct on_disk_tensor on_disk_tensor_t;
 
 tensor_t *tensor_alloc(int32_t *shape, int32_t ndim);  // ritorna puntatore
 void      tensor_incref(tensor_t *t);                   // void
