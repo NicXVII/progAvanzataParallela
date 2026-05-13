@@ -842,24 +842,126 @@ void op_read_bin(tf_stack_t *stack) {
         exit(1);
     }
 
-    FILE *fp = fopen(filename, "rb");
-
-    if (!fp) {
-        fprintf(stderr, "Errore: impossibile aprire il file '%s'\n", filename);
+    tensor_t *tensor;
+    if (tensor_from_bin_mmap(filename, &tensor) != 0) {
+        fprintf(stderr, "Errore: impossibile leggere il file binario '%s'\n", filename);
         free(filename);
         exit(1);
     }
 
-
-
-    int ndim;
-
+    //libero la memoria della stringa usata, pusho il tensore nello stack
+    free(filename);
+    stack_push_tensor(stack, tensor);
+    tensor_decref(tensor);
 
 
 }
 
+int tensor_from_bin_mmap(const char *filename, tensor_t **out){
+    int fd = open(filename, O_RDONLY);
+    if (fd < 0) {
+        return -1;
+    }
+    struct stat st; // prendo la struttura del file
+    if (fstat(fd, &st) != 0) {
+        close(fd);
+        return -1;
+    }
+
+    off_t file_size = st.st_size;
+
+    void *base = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0); // mappo file in memoria
+    if (base == MAP_FAILED) {
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+
+    on_disk_tensor_t *hdr = (on_disk_tensor_t *)base; // prendo l'header del tensore
+
+    if(hdr->ndim < 1 || hdr->ndim > MAX_DIM) { //check validita' ndim
+        munmap(base, file_size);
+        return -1;
+    }
+
+    int32_t ndim = hdr->ndim;
+    int32_t shape[MAX_DIM];
+
+    for(int i = 0; i < ndim; i++) {
+        if(hdr->shape[i] <= 0) {
+            munmap(base, file_size);
+            return -1;
+        }
+        shape[i] = hdr->shape[i];
+    }
+
+    int64_t numel = 1;
+    for(int i = 0; i < ndim; i++) {
+        numel *= shape[i];
+    }
+
+    off_t data_offset = hdr->data_offset; 
+    if(data_offset < (off_t)sizeof(on_disk_tensor_t)) {  // il data_offset deve essere almeno grande quanto l'header
+        munmap(base, file_size);
+        return -1;
+    }
+    if(data_offset + numel * sizeof(float) > file_size) { //la dimensione del offset + dimensione dei dati deve essere minore della dim totale del file
+        munmap(base, file_size);
+        return -1;
+    }
+
+    tensor_t *tensor = malloc(sizeof(tensor_t));
+
+    if(!tensor) {
+        munmap(base, file_size);
+        return -1;
+    }
+
+
+    //inizializzo tensore con dati mappati
+    tensor->ndim = ndim;
+    memcpy(tensor->shape, shape, ndim * sizeof(int32_t));
+    tensor->refcount = 1;
+    tensor->is_mmap = true;
+    tensor->mmap_ptr = base;
+    tensor ->mmap_size = file_size;
+    tensor->data = (float *)((char *)base + data_offset);
+
+    *out = tensor;
+    return 0;
+}
+
+
 void op_save_bin(tf_stack_t *stack) {
     // salva tensore in file name
+    check_stack_size(stack, 2, "}");
+    check_top_is_string(stack, "}");
+    
+    stack_item_t tensor_item = stack->items[stack->top - 1];
+    if (tensor_item.type != STACK_TENSOR) {
+        fprintf(stderr, "Errore: il secondo elemento dello stack deve essere un tensore\n");
+        exit(1);
+    }
+
+    char *filename = stack_pop_string(stack);
+    tensor_t *tensor = tensor_item.value.tensor;
+
+    if (filename == NULL || filename[0] == '\0') {
+        fprintf(stderr, "Errore: nome file non valido '%s'\n", filename);
+        free(filename);
+        exit(1);
+    }
+
+    if (tensor_to_bin(filename, tensor) != 0) {
+        fprintf(stderr, "Errore: impossibile scrivere il file binario '%s'\n", filename);
+        free(filename);
+        exit(1);
+    }
+
+    stack_pop_tensor(stack); // rimuove il tensore dopo averlo salvato
+    free(filename);
+    
 }
 
 

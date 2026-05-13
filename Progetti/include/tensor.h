@@ -15,6 +15,7 @@ struct tensor {
     bool      is_mmap;   
     int       fd;
     off_t    mmap_size;
+    void    *mmap_ptr; // puntatore alla memoria mappata
 };
 
 

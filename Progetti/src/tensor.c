@@ -18,6 +18,7 @@ tensor_t *tensor_alloc(int32_t *shape, int32_t ndim) {
     t->is_mmap = false;
     t->fd = -1;
     t->mmap_size = 0;
+    t->mmap_ptr = NULL;
 
     int numel = tensor_numel(t);
     t->data = (float *)malloc(numel * sizeof(float));
@@ -30,25 +31,32 @@ tensor_t *tensor_alloc(int32_t *shape, int32_t ndim) {
     return t;
 }
 
+
+
+
 void tensor_incref(tensor_t *t) {
+
     if (t) {
         t->refcount++;
     }
 }
 
 void tensor_decref( tensor_t *t ){
-    if(t){
-        t ->refcount--;
-        if(t->refcount == 0){
-           if (t->is_mmap) {
-                munmap(t->data, t->mmap_size);
-                if (t->fd != -1) close(t->fd);
-            } else {
-                free(t->data);   // solo se NON è mmap
-            }
-            free(t);  // la struct è sempre malloc'd
+    if(!t)
+        return;
+    
+    
+    t ->refcount--;
+    if(t->refcount == 0){
+        if (t->is_mmap) {
+            munmap(t->data, t->mmap_size);
+            if (t->fd != -1) close(t->fd);
+        } else {
+            free(t->data);   // solo se NON è mmap
         }
+        free(t);  // la struct è sempre malloc'd
     }
+
 }
 
 
@@ -78,4 +86,4 @@ void tensor_print(const tensor_t *t) {
             if (i < numel - 1) printf(" ");
         }
         printf("])\n");
-    }
+}
