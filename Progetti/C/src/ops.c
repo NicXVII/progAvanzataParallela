@@ -933,6 +933,8 @@ int tensor_from_bin_mmap(const char *filename, tensor_t **out){
 }
 
 
+
+
 void op_save_bin(tf_stack_t *stack) {
     // salva tensore in file name
     check_stack_size(stack, 2, "}");
@@ -963,6 +965,8 @@ void op_save_bin(tf_stack_t *stack) {
     free(filename);
     
 }
+
+
 
 
 
